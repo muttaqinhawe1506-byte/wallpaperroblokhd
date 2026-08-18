@@ -1,0 +1,83 @@
+name: Auto Optimize Wallpaper and Generate JSON
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'raw_images/**' # Skrip hanya berjalan jika ada file baru di folder ini
+
+permissions:
+  contents: write # Memberikan izin kepada robot GitHub untuk menulis & menyimpan file baru
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Dependencies
+      run: pip install Pillow
+
+    - name: Run Script Optimization
+      run: |
+        python -c "
+        import os, json
+        from PIL import Image
+        
+        os.makedirs('images', exist_ok=True)
+        wp_list = []
+        id_idx = 1
+        
+        # Urutkan file agar ID yang digenerate rapi
+        files = sorted(os.listdir('raw_images'))
+        
+        for f in files:
+            if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')) and f != '.gitkeep':
+                img = Image.open(f'raw_images/{f}')
+                
+                # Konversi ke mode RGB jika gambar semula bertipe PNG transparan/RGBA
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Mengubah ukuran gambar secara proporsional (Lebar 1080px standar potret HP)
+                w_pref = (1080 / float(img.size[0]))
+                h_size = int((float(img.size[1]) * float(w_pref)))
+                img_resized = img.resize((1080, h_size), Image.Resampling.LANCZOS)
+                
+                # Buat nama file keluaran berformat webp
+                name_only = os.path.splitext(f)[0]
+                clean_name = name_only.replace('-', '_').replace(' ', '_')
+                output_name = f'{clean_name}.webp'
+                
+                # Simpan dengan kompresi webp kualitas 80%
+                img_resized.save(f'images/{output_name}', 'WEBP', quality=80)
+                
+                # Format judul agar rapi untuk ditampilkan di UI Aplikasi Android
+                display_title = name_only.replace('-', ' ').replace('_', ' ').title()
+                
+                wp_list.append({
+                    'id': id_idx,
+                    'title': display_title,
+                    'category': 'General',
+                    'url': f'https://raw.githubusercontent.com/${{ github.repository }}/main/images/{output_name}'
+                })
+                id_idx += 1
+                
+        with open('wallpapers.json', 'w', encoding='utf-8') as jf:
+            json.dump(wp_list, jf, indent=2, ensure_ascii=False)
+        "
+
+    - name: Commit and Push Changes Automatically
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Bot"
+        git add images/ wallpapers.json
+        git commit -m "Ubah gambar ke WebP dan update wallpapers.json secara otomatis" || exit 0
+        git push
