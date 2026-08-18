@@ -1,0 +1,9 @@
+{
+  "admob_app_id": "ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy",
+  "banner_ad_unit_id": "ca-app-pub-xxxxxxxxxxxxxxxx/1111111111",
+  "interstitial_ad_unit_id": "ca-app-pub-xxxxxxxxxxxxxxxx/2222222222",
+  "native_ad_unit_id": "ca-app-pub-xxxxxxxxxxxxxxxx/3333333333",
+  "rewarded_ad_unit_id": "ca-app-pub-xxxxxxxxxxxxxxxx/4444444444",
+  "is_ad_enabled": true,
+  "interstitial_interval_count": 3
+}
